@@ -11,7 +11,7 @@ import sys
 from os.path import dirname, abspath
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-
+from src.user_message.models import UserMessage
 from src.database import DATABASE_URL, Base
 
 # this is the Alembic Config object, which provides

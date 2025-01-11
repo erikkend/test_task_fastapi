@@ -1,44 +1,47 @@
-from fastapi import APIRouter, HTTPException, Response, status
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends
 
-from src.user_message.dao import UsersMessageDAO
-from src.user_message.schemas import TestData, OutTasksInfo
+from src.celery_app import app as celery_app, redis_client
 
 from src.storage import collection
-
-from src.celery_app import app as celery_app
+from src.auth.router import get_current_user
+from src.user_message.schemas import TestData
+from src.user_message.dao import UsersMessageDAO
 
 router = APIRouter(prefix='/api', tags=['Api'])
 
 
 @router.post('/submit')
-async def get_json(data: TestData | None = None):
+async def get_json(data: TestData | None = None, current_user: dict = Depends(get_current_user)):
     user_message = data.dict()
-    added_message = await UsersMessageDAO.add(**user_message)
-    await save_message_log(added_message.id)
+    user_message.update({'username': current_user['name']})
 
-    celery_app.send_task('calculate_text_lenght', (added_message.message,))
+    added_message = await UsersMessageDAO.add(**user_message)
+
+    celery_app.send_task('calculate_text_lenght', (added_message.message, current_user["user_id"]))
+
+    # await save_message_log(added_message.id)
     return {'status': 'ok'}
 
 
 @router.get('/dashboard')
-async def view_dashboard():
-    redis_tasks_count = get_tasks_count(celery_app)
-    rows = await UsersMessageDAO.find_with_limit(10)
+async def view_dashboard(current_user: dict = Depends(get_current_user)):
+    username = current_user['name']
+    user_id = current_user["user_id"]
+    redis_tasks_info = get_tasks_count(user_id)
 
-    return {'done_tasks_count': redis_tasks_count, 'info': rows}
+    rows = await UsersMessageDAO.find_with_limit(10, {"username": username})
+
+    return {"redis": redis_tasks_info, "rows": rows}
 
 
 async def save_message_log(message_id):
     await collection.insert_one({"saved_message_id": f"{message_id}", "status": "ok"})
 
 
-def get_tasks_count(c_app):
-    tasks_count = 0
-    inspect = c_app.control.inspect()
-    stats = inspect.stats()
+def get_tasks_count(user_id: int | str) -> dict:
+    # Получаем количество задач из Redis
+    completed_tasks = redis_client.hget(user_id, "task")
+    if completed_tasks is None:
+        completed_tasks = 0  # Если данных нет, возвращаем 0
 
-    for worker, stat in stats.items():
-        tasks_count = stat['total']['calculate_text_lenght']
-
-    return tasks_count
+    return {"user_id": user_id, "completed_tasks": int(completed_tasks)}

@@ -5,6 +5,7 @@ from src.database import Base, int_pk, str_null_true
 class UserMessage(Base):
     id: Mapped[int_pk]
     user_id: Mapped[int]
+    username: Mapped[str]
     message: Mapped[str_null_true]
 
     def __str__(self):
