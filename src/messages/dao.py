@@ -1,6 +1,6 @@
 from src.dao.base import BaseDAO
-from src.user_message.models import UserMessage
+from src.messages.models import Message
 
 
-class UsersMessageDAO(BaseDAO):
-    model = UserMessage
+class MessageDAO(BaseDAO):
+    model = Message

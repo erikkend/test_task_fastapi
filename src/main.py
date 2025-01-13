@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-from src.user_message.router import router as router_user_message
+from src.messages.router import router as router_user_message
 from src.auth.router import router as auth_router
 
 from fastapi import FastAPI,Request, Depends
