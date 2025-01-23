@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 
-from src.auth.router import get_current_user
+from src.users.router import get_current_user
 
 load_dotenv()
 
@@ -33,7 +33,7 @@ async def login(request: Request):
 
 @app.get("/welcome")
 async def welcome(request: Request, current_user: dict = Depends(get_current_user)):
-    context = {"request": request, "name": current_user['name']}
+    context = {"request": request, "name": current_user['username']}
     return templates.TemplateResponse("pages/welcome.html", context)
 
 

@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 
 from google.auth.transport.requests import Request as AuthRequest
 
+from src.users.router import save_google_user
+
+
 load_dotenv()
 
 router = APIRouter(prefix='/api/authentication', tags=['auth'])
@@ -46,10 +49,14 @@ async def auth_callback(code: str, request: Request):
     try:
         id_info = id_token.verify_oauth2_token(id_token_value, AuthRequest(), GOOGLE_CLIENT_ID, clock_skew_in_seconds=3)
 
-        user_id = id_info['sub']
-        name = id_info.get('name')
-        request.session['user_id'] = user_id
-        request.session['user_name'] = name
+        username = id_info.get('name')
+        email = id_info.get('email')
+        request.session['username'] = username
+
+        try:
+            await save_google_user(username, email)
+        except Exception as e:
+            print(e)
 
         return RedirectResponse(url=request.url_for('welcome'))
 
@@ -59,15 +66,3 @@ async def auth_callback(code: str, request: Request):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-def get_current_user(request: Request) -> dict:
-    user_name = request.session.get("user_name")
-    if not user_name:
-        raise HTTPException(
-            status_code=401,
-            detail="Not authenticated",
-        )
-    user_id = request.session.get("user_id")
-
-    return {"name": user_name, "user_id": user_id}

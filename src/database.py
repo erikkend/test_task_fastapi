@@ -10,7 +10,7 @@ from src.config import DBConfig
 DATABASE_URL = f'postgresql+asyncpg://{DBConfig.DB_USER}:{DBConfig.DB_PASSWORD}@{DBConfig.DB_HOST}:{DBConfig.DB_PORT}/{DBConfig.DB_NAME}'
 
 engine = create_async_engine(DATABASE_URL)
-async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
+Session = async_sessionmaker(engine, expire_on_commit=False)
 
 # настройка аннотаций
 int_pk = Annotated[int, mapped_column(primary_key=True)]
